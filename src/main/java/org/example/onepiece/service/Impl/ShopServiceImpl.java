@@ -3,6 +3,7 @@ package org.example.onepiece.service.Impl;
 import cn.hutool.core.lang.TypeReference;
 import cn.hutool.core.util.StrUtil;
 //import cn.hutool.db.Page;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -33,6 +34,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
     private CategoryMapper categoryMapper;
+    //根据id查询商品详情
     @Override
     public Result queryById(Long id) {
         String key = "cache:shop:";
@@ -54,10 +56,11 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         //6、返回数据
         return Result.ok(shop);
     }
-
+    //分页查询商品列表（支持按分类筛选）
     @Override
-    public Result queryByPage(int current, int size) {
-        String key = "shop:page:" + current + ":" + size;
+    public Result queryByPage(int current, int size, String typeId) {
+        String categoryPart = (typeId == null || typeId.isEmpty()) ? "all" : typeId;
+        String key = "shop:page:" + current + ":" + size + ":type:" + categoryPart;
 
         try {
             // 1. 先从Redis查询
@@ -65,7 +68,6 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
             // 2. 判断缓存是否命中
             if (jsonStr != null && !jsonStr.isEmpty()) {
-                // 缓存命中，反序列化为 PageInfo<Shop>
                 PageInfo<Shop> cachedPageResult = JSONUtil.toBean(jsonStr, PageInfo.class);
                 log.info("Cache Hit for key: {}", key);
                 return Result.ok(cachedPageResult);
@@ -74,20 +76,24 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             // 3. 缓存未命中，查询数据库
             log.info("Cache Miss for key: {}, querying database...", key);
 
-            // 创建分页对象，使用接口类型
             IPage<Shop> page = new Page<>(current, size);
 
-            // 使用MyBatis-Plus的内置分页查询方法，返回类型也是 IPage
-            IPage<Shop> dbPageResult = this.page(page);
+            // 构建查询条件：按分类筛选
+            QueryWrapper<Shop> queryWrapper = new QueryWrapper<>();
+            if (typeId != null && !typeId.isEmpty()) {
+                queryWrapper.eq("type_id", typeId);
+            }
 
-            // 4. 将 MyBatis-Plus 的 Page 结果转换为我们自定义的 PageInfo 对象
+            IPage<Shop> dbPageResult = this.page(page, queryWrapper);
+
+            // 4. 转换为 PageInfo
             PageInfo<Shop> pageInfo = new PageInfo<>();
-            pageInfo.setRecords(dbPageResult.getRecords()); // ✅ 通过 IPage 接口访问方法
+            pageInfo.setRecords(dbPageResult.getRecords());
             pageInfo.setTotal(dbPageResult.getTotal());
             pageInfo.setCurrent(Math.toIntExact(dbPageResult.getCurrent()));
             pageInfo.setSize(Math.toIntExact(dbPageResult.getSize()));
 
-            // 5. 将 PageInfo 对象存入Redis缓存
+            // 5. 存入Redis缓存，30分钟过期
             String jsonString = JSONUtil.toJsonStr(pageInfo);
             stringRedisTemplate.opsForValue().set(key, jsonString, 30, TimeUnit.MINUTES);
 

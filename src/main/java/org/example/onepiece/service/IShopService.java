@@ -7,7 +7,7 @@ import org.example.onepiece.entity.Shop;
 public interface IShopService extends IService<Shop> {
     Result queryById(Long id);
 
-    Result queryByPage(int current, int size);
+    Result queryByPage(int current, int size, String typeId);
 
     Result queryCategories();
 }

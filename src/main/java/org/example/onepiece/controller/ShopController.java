@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -17,8 +18,11 @@ public class ShopController {
     @Resource
     private IShopService shopService;
     @GetMapping("")
-    public Result queryAll(){
-        return shopService.queryByPage(1,20);
+    public Result queryAll(
+            @RequestParam(value = "typeId", required = false) String typeId,
+            @RequestParam(value = "current", defaultValue = "1") int current,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
+        return shopService.queryByPage(current, size, typeId);
     }
 
     @GetMapping("/{id}")
