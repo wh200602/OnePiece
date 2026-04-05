@@ -110,17 +110,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import axios from 'axios';
-import { onMounted } from 'vue';
-
-// 定义后端API的基础URL（请根据您的实际部署情况修改）
-const BASE_API_URL = 'http://localhost:8080'; // 或者 'http://localhost:8080/api'
+import { ref, computed, onMounted } from 'vue';
+import request from '@/utils/request.js';
 
 // 响应式数据
-const categories = ref([]); // 存储从后端获取的分类数据
-const products = ref([]); // 存储从后端获取的商品数据
-const activeCategory = ref(0); // 当前选中的分类ID，默认为0（全部）
+const categories = ref([]);
+const products = ref([]);
+const activeCategory = ref(0); // 0 = 全部
 
 // 加载状态
 const loadingCategories = ref(false);
@@ -130,15 +126,13 @@ const loadingProducts = ref(false);
 const errorCategories = ref(null);
 const errorProducts = ref(null);
 
-// 根据当前选中的分类过滤商品
-const filteredProducts = computed(() => {
-  if (activeCategory.value === 0) return products.value; // 0代表全部
-  return products.value.filter(product => product.categoryId === activeCategory.value); // 假设后端返回的商品数据中，关联分类的字段是 categoryId
-});
+// 服务端已按分类过滤，直接返回
+const filteredProducts = computed(() => products.value);
 
-// 切换分类
+// 切换分类：更新选中状态 + 重新请求后端
 const changeCategory = (id) => {
   activeCategory.value = id;
+  fetchProducts();
 };
 
 // 从后端获取分类数据
@@ -146,72 +140,71 @@ const fetchCategories = async () => {
   loadingCategories.value = true;
   errorCategories.value = null;
   try {
-    // 1. 获取token
-    const token = localStorage.getItem("token");
+    const data = await request.get('/shop/categories');
 
-    // 2. 带token请求
-    const response = await axios.get(`${BASE_API_URL}/shop/categories`, {
-      headers: {
-        Authorization: "Bearer " + token
-      }
-    });
-    // 假设后端返回的数据结构是 { code: 0, data: [...], message: "" }
-    categories.value = response.data.data || response.data;
+    // 🎯 核心：清洗 icon 字段，避免显示路径
+    const cleanIcon = (path) => {
+      if (!path) return '📦';
+      // 方案A：按已知路径映射 Emoji
+      const map = {
+        '/types/shouban.png': '🎭',
+        '/types/manhua.png': '📚',
+        '/types/zhoubian.png': '🎯',
+        '/types/clothes.png': '👕'
+      };
+      return map[path] || path.split('/').pop().replace(/\.\w+$/, '') || '📦';
+    };
+
+    categories.value = (data || []).map(cat => ({
+      id: cat.id,
+      name: cat.name || '未知分类',
+      icon: cleanIcon(cat.icon)
+    }));
+
   } catch (err) {
-    errorCategories.value = err.response?.data?.message || '网络错误，请稍后重试';
+    errorCategories.value = err.message || '分类加载失败';
     console.error("Error fetching categories:", err);
   } finally {
     loadingCategories.value = false;
   }
 };
 
-// 从后端获取商品数据
+// 从后端获取商品数据（按分类筛选）
 const fetchProducts = async () => {
   loadingProducts.value = true;
   errorProducts.value = null;
   try {
-    const token = localStorage.getItem("token");
-    const response = await axios.get(`${BASE_API_URL}/shop`, {
-      headers: { Authorization: "Bearer " + token }
-    });
+    // 构建请求参数：选中具体分类时传 typeId
+    const params = {};
+    if (activeCategory.value !== 0) {
+      params.typeId = String(activeCategory.value);
+    }
 
-    console.log("Raw Products Response:", response.data);
+    const pageInfo = await request.get('/shop', { params });
+    const rawData = (pageInfo && pageInfo.records) || [];
 
-    const pageInfo = response.data.data;
-    const rawData = pageInfo.records;
-
-    console.log("Raw Data Array (Records):", rawData);
-
-    // --- 修正映射逻辑，严格按照 Shop 实体类的字段名 ---
+    // 映射后端字段到前端字段
     products.value = rawData.map(item => ({
       id: item.id,
-      // 👇 修正字段名：后端是 productName
       name: item.productName || "未知商品",
       description: item.description,
-      // 👇 修正字段名：后端是 price
       price: item.price || 0,
-      // 👇 修正字段名：后端是 type_id
-      categoryId: item.type_id || item.categoryId || item.category || 0, // 仍然尝试其他可能的字段名作为备选
-      // 👇 修正字段名：后端是 imageUrl
+      categoryId: item.type_id || item.categoryId || 0,
       image: item.imageUrl?.startsWith('/')
-             ? `${BASE_API_URL}${item.imageUrl}`
+             ? `http://localhost:8080${item.imageUrl}`
              : item.imageUrl || 'https://via.placeholder.com/200x200?text=No+Image',
-      // 👇 映射库存字段：后端是 stock
       stock: item.stock || 0
     }));
 
-    console.log("Mapped Products:", products.value);
-
   } catch (err) {
-    errorProducts.value = err.response?.data?.message || '网络错误，请稍后重试';
+    errorProducts.value = err.message || '商品加载失败';
     console.error("Error fetching products:", err);
   } finally {
     loadingProducts.value = false;
   }
 };
 
-// 组件挂载时调用两个接口
-// 使用 Promise.all 并行请求，提高效率
+// 组件挂载时并行请求分类和商品
 onMounted(async () => {
   await Promise.all([fetchCategories(), fetchProducts()]);
 });

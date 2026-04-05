@@ -36,6 +36,7 @@ request.interceptors.request.use(
 );
 
 // 响应拦截器：统一处理响应结果（适配黑马点评格式）
+// 响应拦截器：统一处理响应结果（适配黑马点评格式）
 request.interceptors.response.use(
   (response) => {
     // 1. 拿到后端真实返回的所有数据
@@ -43,31 +44,34 @@ request.interceptors.response.use(
     // 2. 打印到控制台，方便排查（调试完可删除）
     console.log("后端返回的原始数据：", res);
 
-    // 3. 兼容所有可能的成功格式（黑马code=0 / 旧success=true / 旧code=200）
+    // 3. ✅ 新增：对特定接口静默处理（如/shop系列）
+    const silentEndpoints = ["/shop", "/shop/categories"]; // 需要静默的接口
+    const shouldSilent = silentEndpoints.some(endpoint =>
+      response.config.url?.includes(endpoint)
+    );
+
+    // 4. 兼容所有可能的成功格式（黑马code=0 / 旧success=true / 旧code=200）
     if (res.code === 0 || res.success === true || res.code === 200) {
-      // 成功：提示自定义msg，返回data
-      ElMessage.success(res.msg || res.errorMsg || "操作成功");
+      // ✅ 成功：只有非静默接口才提示
+      if (!shouldSilent) {
+        ElMessage.success(res.msg || res.errorMsg || "操作成功");
+      }
       return res.data || null;
     }
 
-    // 4. 业务失败（如验证码错误）：提示具体原因
+    // 5. 业务失败（如验证码错误）：提示具体原因
     ElMessage.error(res.msg || res.errorMsg || "操作失败");
     return Promise.reject(new Error(res.msg || "业务错误"));
   },
   (error) => {
-    // 5. 只有「真正的网络错误」才提示「网络异常」
-    // （比如后端宕机、端口错误、跨域、超时）
+    // ... 错误处理保持不变
     let errMsg = "网络异常，请稍后重试";
-    // 超时错误
     if (error.code === "ECONNABORTED") {
       errMsg = "请求超时，请检查网络";
-    }
-    // HTTP状态码错误（如404/500）
-    else if (error.response) {
+    } else if (error.response) {
       const status = error.response.status;
       errMsg = `请求失败 [${status}]：${error.response.data?.msg || "服务器错误"}`;
     }
-    // 提示错误
     ElMessage.error(errMsg);
     console.error("真实网络错误：", error);
     return Promise.reject(error);
