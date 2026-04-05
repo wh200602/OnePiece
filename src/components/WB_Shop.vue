@@ -4,10 +4,11 @@
     <header class="top-header">
       <div class="logo-text">ONE PIECE</div>
       <nav class="nav-links">
-        <a href="#" class="nav-item">势力划分</a>
+        <a href="#" class="nav-item" @click.prevent="$router.push('/group')">势力划分</a>
         <a href="#" class="nav-item">船长室</a>
         <a href="#" class="nav-item">海贼聚会</a>
         <a href="#" class="nav-item active">万博会</a>
+        <a href="#" class="nav-item" @click.prevent="goCart">藏宝箱</a>
       </nav>
     </header>
 
@@ -100,7 +101,7 @@
               <h3 class="product-name">{{ product.name }}</h3>
               <p class="product-desc">{{ product.description }}</p>
               <div class="product-price">¥ {{ product.price }}</div>
-              <button class="add-to-cart">加入购物车</button>
+              <button class="add-to-cart" @click="addToCart(product.id)">加入购物车</button>
             </div>
           </div>
         </div>
@@ -111,7 +112,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import request from '@/utils/request.js';
+import { addToCartAPI } from '@/api/cart.js';
+
+const router = useRouter();
 
 // 响应式数据
 const categories = ref([]);
@@ -134,6 +139,18 @@ const changeCategory = (id) => {
   activeCategory.value = id;
   fetchProducts();
 };
+
+// 加入购物车
+const addToCart = async (shopId) => {
+  try {
+    await addToCartAPI(shopId);
+  } catch (err) {
+    console.error('加入购物车失败:', err);
+  }
+};
+
+// 跳转购物车
+const goCart = () => router.push('/cart');
 
 // 从后端获取分类数据
 const fetchCategories = async () => {

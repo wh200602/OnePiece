@@ -4,7 +4,7 @@
     <nav class="navbar">
       <div class="logo">ONE PIECE</div>
       <div class="nav-links">
-        <a href="#forces" @click.prevent="scrollToSection('forces')">势力划分</a>
+        <a @click="goToGroup">势力划分</a>
         <a href="#captain" @click.prevent="scrollToSection('captain')">船长室</a>
         <a href="#crew" @click.prevent="scrollToSection('crew')">海贼聚会</a>
         <a @click="goToShop">万博会</a>
@@ -84,6 +84,11 @@ const router = useRouter() // 加这行
 // 跳转到万博会
 const goToShop = () => {
   router.push('/shop')
+}
+
+// 跳转到势力划分
+const goToGroup = () => {
+  router.push('/group')
 }
 
 // 数据定义

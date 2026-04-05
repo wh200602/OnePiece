@@ -4,6 +4,8 @@ import HomeView from '../components/HomeView.vue'
 import UserLogin from '../components/User_Login.vue'
 import Main_1 from '../components/Main_1.vue'
 import WB_Shop from '../components/WB_Shop.vue'
+import WB_Cart from '../components/WB_Cart.vue'
+import WB_Group from '../components/WB_Group.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,6 +29,16 @@ const router = createRouter({
       path: '/shop',
       name: 'shop',
       component: WB_Shop
+    },
+    {
+      path: '/cart',
+      name: 'cart',
+      component: WB_Cart
+    },
+    {
+      path: '/group',
+      name: 'group',
+      component: WB_Group
     }
   ]
 })
