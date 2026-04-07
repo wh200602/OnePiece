@@ -6,6 +6,7 @@ import Main_1 from '../components/Main_1.vue'
 import WB_Shop from '../components/WB_Shop.vue'
 import WB_Cart from '../components/WB_Cart.vue'
 import WB_Group from '../components/WB_Group.vue'
+import WB_Detail from '../components/WB_Detail.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -39,6 +40,11 @@ const router = createRouter({
       path: '/group',
       name: 'group',
       component: WB_Group
+    },
+    {
+      path: '/shop/:id',
+      name: 'detail',
+      component: WB_Detail
     }
   ]
 })

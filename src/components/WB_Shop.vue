@@ -93,6 +93,8 @@
             v-for="product in filteredProducts"
             :key="product.id"
             class="product-card"
+            @click="$router.push(`/shop/${product.id}`)"
+            style="cursor: pointer;"
           >
             <div class="product-image">
               <img :src="product.image" :alt="product.name" />
@@ -101,7 +103,7 @@
               <h3 class="product-name">{{ product.name }}</h3>
               <p class="product-desc">{{ product.description }}</p>
               <div class="product-price">¥ {{ product.price }}</div>
-              <button class="add-to-cart" @click="addToCart(product.id)">加入购物车</button>
+              <button class="add-to-cart" @click.stop="addToCart(product.id)">加入购物车</button>
             </div>
           </div>
         </div>
