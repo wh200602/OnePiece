@@ -21,6 +21,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import cn.hutool.json.JSONUtil;
 import org.example.onepiece.utils.PageInfo;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
     private CategoryMapper categoryMapper;
+
     //根据id查询商品详情
     @Override
     public Result queryById(Long id) {
@@ -41,21 +43,26 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         //1、先到redis查询缓存
         String shopJson = stringRedisTemplate.opsForValue().get(key + id);
         //2、存在，直接返回
-        if(StrUtil.isNotBlank(shopJson)){
+        if (StrUtil.isNotBlank(shopJson)) {
             Shop shop = JSONUtil.toBean(shopJson, Shop.class);
             return Result.ok(shop);
+        }
+        if (shopJson == null) {
+            return Result.fail("店铺不存在");
         }
         //3、不存在，查询数据库
         Shop shop = getById(id);
         //4、查询不到，返回错误信息
-        if(shop == null){
+        if (shop == null) {
+            stringRedisTemplate.opsForValue().set(key + id, "", 2, TimeUnit.MINUTES);
             return Result.fail("店铺不存在");
         }
         //5、查询到，放入缓存
-        stringRedisTemplate.opsForValue().set(key + id, JSONUtil.toJsonStr(shop));
+        stringRedisTemplate.opsForValue().set(key + id, JSONUtil.toJsonStr(shop), 30, TimeUnit.MINUTES);
         //6、返回数据
         return Result.ok(shop);
     }
+
     //分页查询商品列表（支持按分类筛选）
     @Override
     public Result queryByPage(int current, int size, String typeId) {
@@ -112,5 +119,18 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
         // 将结果封装到 Result 对象中返回
         return Result.ok(categories);
+    }
+
+    @Override
+    @Transactional
+    public Result update(Shop shop) {
+        Long id = shop.getId();
+        if (id == null || id <= 0) {
+            return Result.fail("店铺ID不能为空");
+        }
+        updateById(shop);   // 更新数据库
+
+        stringRedisTemplate.delete("cache:shop:" + id);  // 删除缓存
+        return Result.ok("更新成功");
     }
 }

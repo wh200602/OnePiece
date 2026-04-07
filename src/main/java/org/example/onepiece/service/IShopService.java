@@ -10,4 +10,6 @@ public interface IShopService extends IService<Shop> {
     Result queryByPage(int current, int size, String typeId);
 
     Result queryCategories();
+
+    Result update(Shop shop);
 }
