@@ -5,7 +5,9 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import org.example.onepiece.entity.Shop;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.Callable;
@@ -16,6 +18,8 @@ import java.util.function.Function;
 
 import static org.example.onepiece.utils.RedisConstants.LOCK_SHOP_KEY;
 
+//@Bean
+@Component
 public class CacheClient {
     private StringRedisTemplate stringRedisTemplate;
 
@@ -32,7 +36,7 @@ public class CacheClient {
         redisData.setData(value);
         redisData.setExpireTime(LocalDateTime.now().plusSeconds(unit.toSeconds(time)));
 
-        stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(value));
+        stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(redisData));
     }
 
     //缓存穿透
@@ -68,9 +72,13 @@ public class CacheClient {
         String key = keyPrefix + id;
         //1、先到redis查询缓存
         String json = stringRedisTemplate.opsForValue().get(key);
-        //2、不存在，直接返回
+        //2、不存在，查数据库并写入缓存（首次访问 / 缓存被清空）
         if (StrUtil.isBlank(json)) {
-            return null;
+            R r2 = dbFallBack.apply(id);
+            if (r2 != null) {
+                setWithLogicalExpire(key, r2, time, unit);
+            }
+            return r2;
         }
         //存在，先把json反序列化为对象
         RedisData redisData = JSONUtil.toBean(json, RedisData.class);

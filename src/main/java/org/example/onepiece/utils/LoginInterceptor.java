@@ -20,15 +20,7 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 1. 获取当前请求路径
-        String requestURI = request.getRequestURI();
-
-        // 2. 直接放行商品相关接口【关键！】
-        if (requestURI.startsWith("/shop/")) {
-            return true;
-        }
-
-        // 3. 其他路径必须登录
+        // 未登录则拦截，路径白名单统一由 WebConfig.excludePathPatterns 管理
         if(UserHolder.getUser() == null){
             response.setStatus(401);
             return false;

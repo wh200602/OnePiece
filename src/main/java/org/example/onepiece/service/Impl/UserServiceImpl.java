@@ -48,6 +48,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         String phone = loginForm.getPhone();
 
 //        Object code = session.getAttribute("code");
+
         String code = stringRedisTemplate.opsForValue().get(LOGIN_CODE_KEY + phone);
         if(code == null || !loginForm.getCode().equals(code)){
             return Result.fail("验证码错误");
