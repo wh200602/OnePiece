@@ -79,7 +79,7 @@ const totalPrice = computed(() =>
 
 const formatImage = (url) => {
   if (!url) return 'https://via.placeholder.com/120x120?text=No+Image'
-  return url.startsWith('/') ? `http://localhost:8080${url}` : url
+  return url.startsWith('/') ? `http://localhost${url}` : url
 }
 
 const goShop = () => router.push('/shop')

@@ -9,6 +9,7 @@
       <nav class="nav-links">
         <a href="#" class="nav-item" @click.prevent="$router.push('/group')">势力划分</a>
         <a href="#" class="nav-item" @click.prevent="$router.push('/shop')">万博会</a>
+        <a href="#" class="nav-item" @click.prevent="$router.push('/voucher')">限时夺宝</a>
         <a href="#" class="nav-item" @click.prevent="$router.push('/cart')">藏宝箱</a>
       </nav>
     </header>
@@ -139,7 +140,7 @@ const categoryName = computed(() => {
 
 const formatImage = (url) => {
   if (!url) return 'https://via.placeholder.com/500x500?text=No+Image'
-  return url.startsWith('/') ? `http://localhost:8080${url}` : url
+  return url.startsWith('/') ? `http://localhost${url}` : url
 }
 
 // 获取商品详情

@@ -2,10 +2,8 @@
 import axios from "axios";
 import { ElMessage } from "element-plus"; // 推荐用UI组件库提示，替代原生alert
 
-// 环境区分：开发/生产环境不同的baseURL
-const baseURL = import.meta.env.MODE === "development"
-  ? "http://localhost:8080"
-  : import.meta.env.VITE_API_BASE_URL; // 生产环境从环境变量读取
+// 统一走 nginx 负载均衡（端口80，/api 前缀）
+const baseURL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 // 创建axios实例
 const request = axios.create({

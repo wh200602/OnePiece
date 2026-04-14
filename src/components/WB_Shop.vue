@@ -8,6 +8,7 @@
         <a href="#" class="nav-item">船长室</a>
         <a href="#" class="nav-item">海贼聚会</a>
         <a href="#" class="nav-item active">万博会</a>
+        <a href="#" class="nav-item" @click.prevent="$router.push('/voucher')">限时夺宝</a>
         <a href="#" class="nav-item" @click.prevent="goCart">藏宝箱</a>
       </nav>
     </header>
@@ -210,7 +211,7 @@ const fetchProducts = async () => {
       price: item.price || 0,
       categoryId: item.type_id || item.categoryId || 0,
       image: item.imageUrl?.startsWith('/')
-             ? `http://localhost:8080${item.imageUrl}`
+             ? `http://localhost${item.imageUrl}`
              : item.imageUrl || 'https://via.placeholder.com/200x200?text=No+Image',
       stock: item.stock || 0
     }));
