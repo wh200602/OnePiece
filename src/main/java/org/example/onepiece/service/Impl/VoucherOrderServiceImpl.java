@@ -9,8 +9,13 @@ import org.example.onepiece.mapper.VoucherOrderMapper;
 import org.example.onepiece.service.IVoucherOrderService;
 import org.example.onepiece.service.IVoucherService;
 import org.example.onepiece.utils.RedisIdWorker;
+import org.example.onepiece.utils.SimpleRedisLock;
 import org.example.onepiece.utils.UserHolder;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +28,11 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private IVoucherService voucherservice;
     @Resource
     private RedisIdWorker redisIdWorker;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private RedissonClient redissonClient;
+
     @Override
     public Result seckillVoucher(Long voucherId) {
 
@@ -42,11 +52,23 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
 
         Long userId = UserHolder.getUser().getId();
-        synchronized (userId.toString().intern()) {
+//        SimpleRedisLock simpleRedisLock = new SimpleRedisLock("order:" + userId, stringRedisTemplate);
+        RLock lock = redissonClient.getLock("lock:order:" + userId);
+
+        boolean islock = lock.tryLock();
+
+        if(!islock){
+            return Result.fail("一人只能下一单");
+        }
+
+        try {
             //返回订单id
             IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
             return proxy.CreateVoucherOrder(voucherId);
+        } finally {
+            lock.unlock();
         }
+
     }
 
     @Transactional

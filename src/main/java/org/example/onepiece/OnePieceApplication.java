@@ -19,6 +19,9 @@ public class OnePieceApplication {
         SpringApplication.run(OnePieceApplication.class, args);
     }
 
+
+
+
     // 项目启动后自动执行该方法，测试数据库连接
     @Bean
     public CommandLineRunner testDbConnection(DataSource dataSource) {
